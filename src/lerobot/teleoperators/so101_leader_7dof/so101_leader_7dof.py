@@ -20,7 +20,7 @@ class SO101Leader7dof(Teleoperator):
     """SO-101 Leader Arm variant publishing joint_4 after the gripper."""
 
     config_class = SO101Leader7dofConfig
-    name = "so101_leader_6dof_v3"
+    name = "so101_leader_7dof"
 
     _MOTOR_KEYS = (
         "joint_1",
