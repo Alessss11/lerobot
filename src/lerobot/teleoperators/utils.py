@@ -77,6 +77,10 @@ def make_teleoperator_from_config(config: TeleoperatorConfig) -> Teleoperator:
         from .reachy2_teleoperator import Reachy2Teleoperator
 
         return Reachy2Teleoperator(config)
+    elif config.type == "so101_leader_7dof":
+        from .so101_leader_7dof import SO101Leader7dof
+
+        return SO101Leader7dof(config)
     else:
         try:
             return cast(Teleoperator, make_device_from_device_class(config))
