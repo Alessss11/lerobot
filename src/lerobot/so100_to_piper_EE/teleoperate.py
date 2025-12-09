@@ -41,12 +41,12 @@ FPS = 30
 def main():
     # Initialize the robot and teleoperator config
     follower_config = SO100FollowerConfig(
-        port="/dev/ttyACM0", id="my_awesome_follower_arm", use_degrees=True
+        port="can0", id="my_piper", use_degrees=True
     )
     leader_config = SO100LeaderConfig(port="/dev/ttyACM1", id="my_awesome_leader_arm")
 
     # Initialize the robot and teleoperator
-    follower = SO100Follower(follower_config)
+    follower = Piper(follower_config)
     leader = SO100Leader(leader_config)
 
     # NOTE: It is highly recommended to use the urdf in the SO-ARM100 repo: https://github.com/TheRobotStudio/SO-ARM100/blob/main/Simulation/SO101/so101_new_calib.urdf

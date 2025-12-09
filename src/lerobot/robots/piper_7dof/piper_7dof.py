@@ -95,11 +95,42 @@ class Piper_7dof(Robot):
 
     def get_observation(self) -> dict[str, Any]:
         obs_dict = self.sdk.get_status()
-
+        
         for joint_key in self._SDK_JOINT_KEYS:
             if joint_key in obs_dict and obs_dict[joint_key] is not None:
                 obs_dict[joint_key] = float(obs_dict[joint_key]) / 1000.0
+        '''
 
+        #----------------------------------------------------------------DA MODIFICARE POI SE PRENDO ALTRO DATASET
+        for idx, joint_key in enumerate(self._SDK_JOINT_KEYS):
+            raw_value = obs_dict.get(joint_key)
+            if raw_value is None:
+                continue
+
+            sign = -1 if idx in (0, 3, 5) else 1
+            value = sign * float(raw_value)
+
+            if idx < 6:
+                value /= 100.0
+                min_pos = self.sdk.min_pos[idx]
+                max_pos = self.sdk.max_pos[idx]
+                if min_pos == max_pos:
+                    normalized = 0.0
+                else:
+                    normalized = ((value - min_pos) * 200.0 / (max_pos - min_pos)) - 100.0
+                obs_dict[joint_key] = max(min(normalized, 100.0), -100.0)
+            else:
+                value /= 10000.0
+                min_pos = self.sdk.min_pos[6]
+                max_pos = self.sdk.max_pos[6]
+                if min_pos == max_pos:
+                    normalized = 0.0
+                else:
+                    normalized = (value - min_pos) * 100.0 / (max_pos - min_pos)
+                obs_dict[joint_key] = max(min(normalized, 100.0), 0.0)
+        #----------------------------------------------------------------
+        '''
+        
         ordered_obs = {key: obs_dict.get(key) for key in self._JOINT_KEYS}
 
         for cam_key, cam in self.cameras.items():

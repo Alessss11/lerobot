@@ -172,7 +172,7 @@ class RewardClassifierConfig:
     success_threshold: float = 0.5
     success_reward: float = 1.0
 
-
+'''
 @dataclass
 class InverseKinematicsConfig:
     """Configuration for inverse kinematics processing."""
@@ -181,6 +181,14 @@ class InverseKinematicsConfig:
     target_frame_name: str | None = None
     end_effector_bounds: dict[str, list[float]] | None = None
     end_effector_step_sizes: dict[str, float] | None = None
+'''
+class InverseKinematicsConfig:
+    """Configuration for inverse kinematics processing."""
+
+    urdf_path: str='/URDF/SO101/so101_new_calib.urdf'
+    target_frame_name: str="gripper_frame_link"
+    end_effector_bounds: dict[str, list[float]] | None = None
+    end_effector_step_sizes: dict["x": 0.02, "y": 0.02, "z": 0.02]
 
 
 @dataclass

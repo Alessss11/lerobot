@@ -51,6 +51,8 @@ policy = SmolVLAPolicy.from_pretrained("lerobot/smolvla_base")
 ```
 
 """
+import os
+import numpy as np
 
 import math
 from collections import deque
@@ -269,7 +271,7 @@ class SmolVLAPolicy(PreTrainedPolicy):
 
     def get_optim_params(self) -> dict:
         return self.parameters()
-
+    
     def _get_action_chunk(
         self, batch: dict[str, Tensor], noise: Tensor | None = None, **kwargs: Unpack[ActionSelectKwargs]
     ) -> Tensor:
@@ -298,7 +300,83 @@ class SmolVLAPolicy(PreTrainedPolicy):
         if self.config.adapt_to_pi_aloha:
             actions = self._pi_aloha_encode_actions(actions)
 
+        '''# ---------- DEBUG: salva il chunk ----------
+        if getattr(self.config, "debug_save_chunks", False):
+            # inizializza contatore e directory la prima volta
+            if not hasattr(self, "_debug_chunk_idx"):
+                self._debug_chunk_idx = 0
+                self._debug_chunk_dir = "/home/ales/lerobot/chunks"
+                os.makedirs(self._debug_chunk_dir, exist_ok=True)
+
+            chunk_path = os.path.join(
+                self._debug_chunk_dir,
+                f"chunk_{self._debug_chunk_idx:05d}.pt",
+            )
+            torch.save(actions.detach().cpu(), chunk_path)
+            self._debug_chunk_idx += 1
+        # -------------------------------------------'''
+
+        # ---------- SMOOTHING POLINOMIALE ----------
+        if getattr(self.config, "smooth_chunks", True):
+            degree = getattr(self.config, "smooth_poly_degree", 5)
+            n_smooth = 30  # quanti timestep lisciare (puoi mettere 25, 30, ecc.)
+
+            T = actions.shape[1]
+            n_smooth = min(n_smooth, T)
+
+            # liscia solo [0 : n_smooth), il resto rimane com'è
+            actions[:, :n_smooth, :] = self._smooth_action_chunk(
+                actions[:, :n_smooth, :],
+                degree=degree,
+            )
+            """
+            if not hasattr(self, "_debug_chunk_idx"):
+                self._debug_chunk_idx = 0
+                self._debug_chunk_dir = "/home/ales/lerobot/chunks"
+                os.makedirs(self._debug_chunk_dir, exist_ok=True)
+
+            chunk_path = os.path.join(
+                self._debug_chunk_dir,
+                f"chunk_{self._debug_chunk_idx:05d}.pt",
+            )
+            torch.save(actions.detach().cpu(), chunk_path)
+            self._debug_chunk_idx += 1
+            """
+        # -------------------------------------------
+
         return actions
+
+    #------------------------------------------------
+    def _smooth_action_chunk(
+        self, actions: Tensor, degree: int = 3,) -> Tensor:
+        """
+        Smoothing polinomiale lungo la dimensione temporale del chunk.
+        actions: Tensor [B, T, D]
+        degree: grado del polinomio
+        """
+        B, T, D = actions.shape
+        #print("DEBUG _smooth_action_chunk -> B:", B, "T:", T, "D:", D)
+        if T <= degree:
+            return actions
+
+        device = actions.device
+        dtype = actions.dtype
+
+        actions_np = actions.detach().cpu().numpy()
+        t = np.arange(T)
+
+        smoothed_np = np.empty_like(actions_np)
+
+        for b in range(B):
+            for d in range(D):
+                y = actions_np[b, :, d]
+                # fit polinomiale ai minimi quadrati
+                coeffs = np.polyfit(t, y, degree)
+                smoothed_np[b, :, d] = np.polyval(coeffs, t)
+
+        smoothed = torch.from_numpy(smoothed_np).to(device=device, dtype=dtype)
+        return smoothed
+    #-----------------------------------------------------------------------
 
     def _prepare_batch(self, batch: dict[str, Tensor]) -> dict[str, Tensor]:
         if self.config.adapt_to_pi_aloha:

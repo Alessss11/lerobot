@@ -183,6 +183,11 @@ def teleop_loop(
         print(f"Teleop loop time: {loop_s * 1e3:.2f}ms ({1 / loop_s:.0f} Hz)")
         move_cursor_up(1)
 
+        #--------------------------------------------------------------------------------------------
+        #sdk = Piper_7dofSDKInterface("can0")
+        #torques = sdk.get_torques()
+        #print(torques['gripper.tau'])
+
         if duration is not None and time.perf_counter() - start >= duration:
             return
 

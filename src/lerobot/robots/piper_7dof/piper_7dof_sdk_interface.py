@@ -89,6 +89,41 @@ class Piper_7dofSDKInterface:
         }
 
         return obs_dict
+    #----------------------------------------------------------------------------------
+    def get_torques(self) -> dict[str, float]:
+        """Return joint and gripper torques in N·m."""
+
+        # High-speed feedback for joints
+        highspd = self.piper.GetArmHighSpdInfoMsgs()
+        # Gripper feedback
+        gripper = self.piper.GetArmGripperMsgs()
+
+        torques: dict[str, float] = {}
+
+        motors = [
+            highspd.motor_1,
+            highspd.motor_2,
+            highspd.motor_3,
+            highspd.motor_4,
+            highspd.motor_5,
+            highspd.motor_6,
+        ]
+
+        # effort è in 0.001 N·m → divido per 1000
+        for i, motor in enumerate(motors, start=1):
+            torques[f"joint_{i}.tau"] = motor.effort / 1000.0
+
+        # grippers_effort è anche lui in 0.001 N·m
+        torques["gripper.tau"] = gripper.gripper_state.grippers_effort / 1000.0
+        '''
+        joint_state = self.piper.GetArmJointMsgs().joint_state
+        print("joint_2 angle:", joint_state.joint_2)
+        print("gripper state:", gripper.gripper_state)
+        '''
+        
+        return torques
+    #----------------------------------------------------------------------------
+
 
     def disconnect(self):
         self.piper.JointCtrl(0, 0, 0, 0, 0, 0)
